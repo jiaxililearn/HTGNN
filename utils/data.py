@@ -27,9 +27,15 @@ def construct_htg_dgraph(glist, idx, time_window):
 
 
 def load_dgraph_data(glist, time_window):
-    train_feats, train_labels = [], []
-    val_feats, val_labels = [], []
-    test_feats, test_labels = [], []
+    _feats, _labels = [], []
+
+    for i in range(len(glist)):
+        if i >= time_window:
+            G_feat, G_label = construct_htg_dgraph(glist, i, time_window)
+            _feats.append(G_feat)
+            _labels.append(G_label)
+
+    return _feats, _labels
 
 
 def construct_htg_covid(glist, idx, time_window):
