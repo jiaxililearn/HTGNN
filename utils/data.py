@@ -14,7 +14,7 @@ def construct_htg_dgraph(glist, idx, time_window):
     hetero_dict = {}
     for t, g_s in enumerate(sub_glist):
         for srctype, etype, dsttype in g_s.canonical_etypes:
-            src, dst = g_s.in_edges(g_s.nodes(dsttype), etype=etype)
+            src, dst = g_s.in_edges(g_s.nodes(dsttype), etype=(srctype, etype, dsttype))
             hetero_dict[(srctype, f"{etype}_t{t}", dsttype)] = (src, dst)
 
     G_feat = dgl.heterograph(hetero_dict)
