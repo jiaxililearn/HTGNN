@@ -8,10 +8,8 @@ torch.cuda.manual_seed(0)
 torch.cuda.manual_seed_all(0)
 
 
-def construct_htg_dgraph(glist, idx, time_window):
+def construct_htg_dgraph(glist, idx, time_window, num_nodes_dict):
     sub_glist = glist[idx - time_window : idx]
-
-    num_nodes_dict = {"vtype_0": 273927, "vtype_1": 131708, "vtype_2": 903019}
 
     hetero_dict = {}
     for t, g_s in enumerate(sub_glist):
@@ -24,20 +22,19 @@ def construct_htg_dgraph(glist, idx, time_window):
         for ntype in G_feat.ntypes:
             G_feat.nodes[ntype].data[f"t{t}"] = g_s.nodes[ntype].data["features"]
 
-    G_label = glist[idx]
-    return G_feat, G_label
+    # G_label = glist[idx]
+    return G_feat
 
 
-def load_dgraph_data(glist, time_window):
-    _feats, _labels = [], []
+def load_dgraph_data(glist, time_window, num_nodes_dict):
+    _feats = []
 
     for i in range(len(glist)):
         if i >= time_window:
-            G_feat, G_label = construct_htg_dgraph(glist, i, time_window)
+            G_feat = construct_htg_dgraph(glist, i, time_window, num_nodes_dict)
             _feats.append(G_feat)
-            _labels.append(G_label)
-
-    return _feats, _labels
+            # _labels.append(G_label)
+    return _feats
 
 
 def construct_htg_covid(glist, idx, time_window):
