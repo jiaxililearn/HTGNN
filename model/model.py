@@ -263,8 +263,17 @@ class HTGNN(nn.Module):
         )
         self.gnn_layers = nn.ModuleList(
             [
-                HTGNNLayer(
-                    graph, n_hid, n_hid, n_heads, self.timeframe, norm, device, dropout
+                nn.DataParallel(
+                    HTGNNLayer(
+                        graph,
+                        n_hid,
+                        n_hid,
+                        n_heads,
+                        self.timeframe,
+                        norm,
+                        device,
+                        dropout,
+                    )
                 )
                 for _ in range(n_layers)
             ]
