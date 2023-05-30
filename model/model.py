@@ -269,6 +269,7 @@ class HTGNN(nn.Module):
                 for _ in range(n_layers)
             ]
         )
+        self.gnn_layers = nn.DataParallel(self.gnn_layers, device_ids=[1, 2, 3])
 
     def forward(self, graph: dgl.DGLGraph, predict_type: str):
         """
