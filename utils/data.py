@@ -11,13 +11,15 @@ torch.cuda.manual_seed_all(0)
 def construct_htg_dgraph(glist, idx, time_window):
     sub_glist = glist[idx - time_window : idx]
 
+    num_nodes_dict = {"vtype_0": 273927, "vtype_1": 131708, "vtype_2": 903019}
+
     hetero_dict = {}
     for t, g_s in enumerate(sub_glist):
         for srctype, etype, dsttype in g_s.canonical_etypes:
             src, dst = g_s.in_edges(g_s.nodes(dsttype), etype=(srctype, etype, dsttype))
             hetero_dict[(srctype, f"{etype}_t{t}", dsttype)] = (src, dst)
 
-    G_feat = dgl.heterograph(hetero_dict)
+    G_feat = dgl.heterograph(hetero_dict, num_nodes_dict=num_nodes_dict)
     for t, g_s in enumerate(sub_glist):
         for ntype in G_feat.ntypes:
             G_feat.nodes[ntype].data[f"t{t}"] = g_s.nodes[ntype].data["features"]
