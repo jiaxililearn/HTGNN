@@ -179,6 +179,8 @@ class HTGNNLayer(nn.Module):
         # intra_features, dict, {'ttype': {(stype, etype, dtype): features}}
         intra_features = dict({ttype: {} for ttype in self.timeframe})
 
+        print(f"{np.unique([etype for _, etype, _ in graph.canonical_etypes]).shape}: {np.unique([etype for _, etype, _ in graph.canonical_etypes])}")
+
         for idx, (stype, etype, dtype) in enumerate(graph.canonical_etypes):
             rel_graph = graph[stype, etype, dtype]
             reltype = etype.split("_")[0]
@@ -195,15 +197,15 @@ class HTGNNLayer(nn.Module):
             device_id = idx % NGPU
             with torch.cuda.device(f"cuda:{device_id}"):
                 # print(f"self.intra_rel_agg[{etype}]: {self.intra_rel_agg[etype]}")
-                self = self.to(f"cuda:{device_id}")
+                # self = self.to(f"cuda:{device_id}")
                 rel_graph = rel_graph.to(f"cuda:{device_id}")
                 src_node_feat = node_features[stype][ttype].to(f"cuda:{device_id}")
                 dst_node_feat = node_features[dtype][ttype].to(f"cuda:{device_id}")
 
-                print(f"device_id: {device_id}")
-                print(f"rel_graph: {rel_graph.device}")
-                print(f"src_node_feat: {src_node_feat.get_device()}")
-                print(f"dst_node_feat: {dst_node_feat.get_device()}")
+                # print(f"device_id: {device_id}")
+                # print(f"rel_graph: {rel_graph.device}")
+                # print(f"src_node_feat: {src_node_feat.get_device()}")
+                # print(f"dst_node_feat: {dst_node_feat.get_device()}")
 
                 dst_feat = self.intra_rel_agg[etype](
                     rel_graph, (src_node_feat, dst_node_feat)
