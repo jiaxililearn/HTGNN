@@ -52,7 +52,7 @@ class DataPartitioner(object):
 
 def partition_DGraph_dataset(dataset, num_part, batch_size, explicit_part=None):
     partition = DataPartitioner(dataset, num_part)
-    if explicit_part is not None:
+    if explicit_part is None:
         partition = partition.use(dist.get_rank())
     else:
         partition = partition.use(explicit_part)
