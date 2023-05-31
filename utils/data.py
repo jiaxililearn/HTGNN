@@ -54,7 +54,6 @@ def construct_htg_dgraph_and_reindex(glist, idx, time_window, node_label):
 
     num_nodes_dict = {k: len(v) for k, v in node_list.items()}
     G_feat = dgl.heterograph(hetero_dict, num_nodes_dict=num_nodes_dict)
-    print(G_feat.num_nodes())
 
     for t, g_s in enumerate(sub_glist):
         for ntype in G_feat.ntypes:
@@ -65,7 +64,7 @@ def construct_htg_dgraph_and_reindex(glist, idx, time_window, node_label):
                 g_s_feat.shape[0] == G_feat.nodes(ntype).shape[0]
             ), f"{g_s_feat.shape[0]} == {G_feat.nodes(ntype).shape[0]}"
 
-            G_feat.nodes[ntype].data[f"t_all"] = g_s_feat
+            G_feat.nodes[ntype].data[f"t_{t}"] = g_s_feat
     G_label = {}
 
     for k, v in node_label.items():
