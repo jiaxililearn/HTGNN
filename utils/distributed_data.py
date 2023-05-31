@@ -50,7 +50,10 @@ class DataPartitioner(object):
         return Partition(self.data, self.partitions[partition])
 
 
-def partition_DGraph_dataset(dataset, num_part, batch_size):
+def partition_DGraph_dataset(dataset, num_part, batch_size, explicit_part=None):
     partition = DataPartitioner(dataset, num_part)
-    partition = partition.use(dist.get_rank())
+    if explicit_part is not None:
+        partition = partition.use(dist.get_rank())
+    else:
+        partition = partition.use(explicit_part)
     return torch.utils.data.DataLoader(partition, batch_size=batch_size, shuffle=True)
