@@ -33,14 +33,16 @@ input_root = "../HRGCN/dataset/dgl_format_1"
 
 batch_size = 1
 
+# torch.multiprocessing.set_sharing_strategy('file_system')
+
 
 # %%
-def init_process(rank, size, fn, data, backend="gloo"):
+def init_process(rank, size, fn, backend="gloo"):
     """Initialize the distributed environment."""
     os.environ["MASTER_ADDR"] = "127.0.0.1"
     os.environ["MASTER_PORT"] = "29500"
     dist.init_process_group(backend, rank=rank, world_size=size)
-    fn(rank, size, data)
+    fn(rank, size)
 
 
 def read_DGraph_data(name, part):
@@ -62,11 +64,21 @@ def average_gradients(model):
         param.grad.data /= size
 
 
-def run(rank, size, data, dataset):
-    train_set = partition_DGraph_dataset(dataset, num_part=size, batch_size=batch_size)
-    graph_atom = train_set[0]
-    device = torch.device(f"cuda:{rank}")
+def run(rank, size):
+    print(f"[rank {rank}]: Loading Data..")
+    
+    train_feat, train_node_labels, train_num_node_dict = read_DGraph_data(
+        "train", part=100
+    )
 
+    train_dataset = DGraphDataset(train_feat)
+    train_set = partition_DGraph_dataset(
+        train_dataset, num_part=size, batch_size=batch_size
+    )
+    graph_atom = train_dataset[0]
+    device = torch.device(f"cuda:{rank}")
+    
+    print(f"[rank {rank}]: Define Model..")
     htgnn = HTGNN(
         graph=graph_atom,
         n_inp=16,
@@ -81,27 +93,31 @@ def run(rank, size, data, dataset):
     model = nn.Sequential(htgnn, predictor).to(device)
 
     optim = torch.optim.Adam(model.parameters(), lr=5e-3, weight_decay=5e-4)
-
+    
     for G_feat in train_set:
         # G_label = train_node_labels
-        h = model[0](G_feat.to(device), 'vtype_2')
+        print(f"[rank {rank}]: getting h..")
+        h = model[0](G_feat.to(device), "vtype_2")
+        print(f"[rank {rank}]: getting pred..")
         pred = model[1](h)
+        print(f"[rank {rank}]: done.")
+        break
 
-        # TODO
+#         TODO
 
 
 if __name__ == "__main__":
     size = 4
     processes = []
 
-    train_feat, train_node_labels, train_num_node_dict = read_DGraph_data(
-        "train", part=100
-    )
-    train_dataset = DGraphDataset(train_feat)
+#     train_feat, train_node_labels, train_num_node_dict = read_DGraph_data(
+#         "train", part=100
+#     )
+#     train_dataset = DGraphDataset(train_feat)
 
     mp.set_start_method("spawn")
     for rank in range(size):
-        p = mp.Process(target=init_process, args=(rank, size, run, train_dataset))
+        p = mp.Process(target=init_process, args=(rank, size, run))
         p.start()
         processes.append(p)
 
