@@ -124,7 +124,7 @@ class HTGNNLayer(nn.Module):
                     feat_drop=dropout,
                     allow_zero_in_degree=True,
                 ).to(f"cuda:{idx % NGPU}")
-                for idx, (srctype, etype, dsttype) in graph.canonical_etypes
+                for idx, (srctype, etype, dsttype) in enumerate(graph.canonical_etypes)
             }
         )
 
