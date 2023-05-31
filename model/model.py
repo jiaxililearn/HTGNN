@@ -263,18 +263,18 @@ class HTGNN(nn.Module):
         )
         self.gnn_layers = nn.ModuleList(
             [
-                nn.DataParallel(
-                    HTGNNLayer(
-                        graph,
-                        n_hid,
-                        n_hid,
-                        n_heads,
-                        self.timeframe,
-                        norm,
-                        device,
-                        dropout,
-                    )
+                # nn.DataParallel(
+                HTGNNLayer(
+                    graph,
+                    n_hid,
+                    n_hid,
+                    n_heads,
+                    self.timeframe,
+                    norm,
+                    device,
+                    dropout,
                 )
+                # )
                 for _ in range(n_layers)
             ]
         )
@@ -292,9 +292,11 @@ class HTGNN(nn.Module):
         for ntype in graph.ntypes:
             inp_feat[ntype] = {}
             for ttype in self.timeframe:
-                inp_feat[ntype][ttype] = self.adaption_layer[ntype](
+                adapt_embedd = self.adaption_layer[ntype](
                     graph.nodes[ntype].data[ttype]
                 )
+                print(f"adapt_embedd shape: {adapt_embedd.shape}")
+                inp_feat[ntype][ttype] = adapt_embedd
 
         # gnn
         for i in range(self.n_layers):
