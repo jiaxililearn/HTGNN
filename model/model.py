@@ -178,6 +178,15 @@ class HTGNNLayer(nn.Module):
             rel_graph = graph[stype, etype, dtype]
             reltype = etype.split("_")[0]
             ttype = etype.split("_")[-1]
+
+            print(f"rel_graph num_nodes: {rel_graph.num_nodes()}")
+            print(
+                f"node_features[{stype}][{ttype}] shape: {node_features[stype][ttype].shape}"
+            )
+            print(
+                f"node_features[{dtype}][{ttype}] shape: {node_features[dtype][ttype].shape}"
+            )
+
             dst_feat = self.intra_rel_agg[etype](
                 rel_graph, (node_features[stype][ttype], node_features[dtype][ttype])
             )
