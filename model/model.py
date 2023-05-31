@@ -197,6 +197,7 @@ class HTGNNLayer(nn.Module):
 
             device_id = idx % NGPU
             with torch.cuda.device(f"cuda:{device_id}"):
+                print(f"device_id: {device_id}")
                 print(f"rel_graph: {rel_graph.device}")
                 print(f"src_node_feat: {src_node_feat.get_device()}")
                 print(f"dst_node_feat: {dst_node_feat.get_device()}")
