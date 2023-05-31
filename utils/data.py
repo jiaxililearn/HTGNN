@@ -69,9 +69,10 @@ def construct_htg_dgraph_and_reindex(glist, idx, time_window, node_label):
 
     for k, v in node_label.items():
         G_label[k] = v[node_list[k]]
-    
+
     for k in G_label.keys():
-        assert G_label[k].shape[0] == G_feat.nodes[k].data['t_all'].shape[0]
+        for t in range(time_window):
+            assert G_label[k].shape[0] == G_feat.nodes[k].data[f"t_{t}"].shape[0]
 
     return G_feat, G_label
 
@@ -82,7 +83,9 @@ def load_dgraph_data(glist, time_window, node_label):
 
     for i in range(len(glist)):
         if i >= time_window:
-            G_feat, G_label = construct_htg_dgraph_and_reindex(glist, i, time_window, node_label)
+            G_feat, G_label = construct_htg_dgraph_and_reindex(
+                glist, i, time_window, node_label
+            )
             _feats.append(G_feat)
             _labels.append(G_label)
             # _labels.append(G_label)
