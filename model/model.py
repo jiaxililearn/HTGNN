@@ -121,7 +121,7 @@ class HTGNNLayer(nn.Module):
                     n_heads,
                     feat_drop=dropout,
                     allow_zero_in_degree=True,
-                )
+                ).to("cuda:1")
                 for srctype, etype, dsttype in graph.canonical_etypes
             }
         )
@@ -193,14 +193,15 @@ class HTGNNLayer(nn.Module):
             src_node_feat = node_features[stype][ttype].to("cuda:1")
             dst_node_feat = node_features[dtype][ttype].to("cuda:1")
 
-            print(f"rel_graph: {rel_graph.get_device()}")
+            print(f"rel_graph: {rel_graph.device()}")
             print(f"src_node_feat: {src_node_feat.get_device()}")
             print(f"dst_node_feat: {dst_node_feat.get_device()}")
-            print(f"self.intra_rel_agg[etype]: {self.intra_rel_agg[etype].get_device()}")
+            print(f"self.intra_rel_agg[{etype}]: {self.intra_rel_agg[etype]}")
 
-            dst_feat = self.intra_rel_agg[etype](
-                rel_graph, (src_node_feat, dst_node_feat)
-            )
+            with torch.device("cuda:1"):
+                dst_feat = self.intra_rel_agg[etype](
+                    rel_graph, (src_node_feat, dst_node_feat)
+                )
             # dst_representation (dst_nodes, hid_dim)
             intra_features[ttype][(stype, etype, dtype)] = dst_feat.squeeze()
 
