@@ -7,6 +7,8 @@ from dgl.nn.pytorch import GATConv
 import numpy as np
 import math
 
+NGPU = 4
+
 
 class RelationAgg(nn.Module):
     def __init__(self, n_inp: int, n_hid: int):
@@ -121,12 +123,12 @@ class HTGNNLayer(nn.Module):
                     n_heads,
                     feat_drop=dropout,
                     allow_zero_in_degree=True,
-                ).to("cuda:1")
-                for srctype, etype, dsttype in graph.canonical_etypes
+                ).to(f"cuda:{idx % NGPU}")
+                for idx, (srctype, etype, dsttype) in graph.canonical_etypes
             }
         )
 
-        self.intra_rel_agg = self.intra_rel_agg.to("cuda:1")
+        # self.intra_rel_agg = self.intra_rel_agg.to("cuda:1")
 
         # inter relation aggregation modules
         self.inter_rel_agg = nn.ModuleDict(
@@ -177,7 +179,7 @@ class HTGNNLayer(nn.Module):
         # intra_features, dict, {'ttype': {(stype, etype, dtype): features}}
         intra_features = dict({ttype: {} for ttype in self.timeframe})
 
-        for stype, etype, dtype in graph.canonical_etypes:
+        for idx, (stype, etype, dtype) in enumerate(graph.canonical_etypes):
             rel_graph = graph[stype, etype, dtype]
             reltype = etype.split("_")[0]
             ttype = etype.split("_")[-1]
@@ -193,12 +195,16 @@ class HTGNNLayer(nn.Module):
             src_node_feat = node_features[stype][ttype].to("cuda:1")
             dst_node_feat = node_features[dtype][ttype].to("cuda:1")
 
-            print(f"rel_graph: {rel_graph.device()}")
-            print(f"src_node_feat: {src_node_feat.get_device()}")
-            print(f"dst_node_feat: {dst_node_feat.get_device()}")
-            print(f"self.intra_rel_agg[{etype}]: {self.intra_rel_agg[etype]}")
+            # print(f"rel_graph: {rel_graph.device}")
+            # print(f"src_node_feat: {src_node_feat.get_device()}")
+            # print(f"dst_node_feat: {dst_node_feat.get_device()}")
+            # print(f"self.intra_rel_agg[{etype}]: {self.intra_rel_agg[etype]}")
 
-            with torch.device("cuda:1"):
+            device_id = idx % NGPU
+            with torch.cuda.device(f"cuda:{device_id}"):
+                rel_graph = rel_graph.to(f"cuda:{device_id}")
+                src_node_feat = node_features[stype][ttype].to(f"cuda:{device_id}")
+                dst_node_feat = node_features[dtype][ttype].to(f"cuda:{device_id}")
                 dst_feat = self.intra_rel_agg[etype](
                     rel_graph, (src_node_feat, dst_node_feat)
                 )
@@ -286,7 +292,7 @@ class HTGNN(nn.Module):
         self.timeframe = [f"t{_}" for _ in range(time_window)]
 
         self.adaption_layer = nn.ModuleDict(
-            {ntype: nn.Linear(n_inp, n_hid) for ntype in graph.ntypes}
+            {ntype: nn.Linear(n_inp, n_hid).to("cuda:0") for ntype in graph.ntypes}
         )
         self.gnn_layers = nn.ModuleList(
             [
@@ -299,7 +305,7 @@ class HTGNN(nn.Module):
                     norm,
                     device,
                     dropout,
-                )
+                ).to("cuda:1")
                 for _ in range(n_layers)
             ]
         )
