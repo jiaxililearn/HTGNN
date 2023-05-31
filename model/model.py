@@ -179,7 +179,7 @@ class HTGNNLayer(nn.Module):
         # intra_features, dict, {'ttype': {(stype, etype, dtype): features}}
         intra_features = dict({ttype: {} for ttype in self.timeframe})
 
-        print(f"{np.unique([etype for _, etype, _ in graph.canonical_etypes]).shape}: {np.unique([etype for _, etype, _ in graph.canonical_etypes])}")
+        # print(f"{np.unique([etype for _, etype, _ in graph.canonical_etypes]).shape}: {np.unique([etype for _, etype, _ in graph.canonical_etypes])}")
 
         for idx, (stype, etype, dtype) in enumerate(graph.canonical_etypes):
             rel_graph = graph[stype, etype, dtype]
