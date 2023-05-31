@@ -50,8 +50,7 @@ class DataPartitioner(object):
         return Partition(self.data, self.partitions[partition])
 
 
-def partition_DGraph_dataset(glist, num_part, batch_size):
-    dataset = DGraphDataset(glist)
+def partition_DGraph_dataset(dataset, num_part, batch_size):
     partition = DataPartitioner(dataset, num_part)
     partition = partition.use(dist.get_rank())
     return torch.utils.data.DataLoader(partition, batch_size=batch_size, shuffle=True)

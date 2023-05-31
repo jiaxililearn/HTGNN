@@ -115,14 +115,12 @@ class HTGNNLayer(nn.Module):
         # intra reltion aggregation modules
         self.intra_rel_agg = nn.ModuleDict(
             {
-                etype: nn.DataParallel(
-                    GATConv(
-                        n_inp,
-                        n_hid,
-                        n_heads,
-                        feat_drop=dropout,
-                        allow_zero_in_degree=True,
-                    )
+                etype: GATConv(
+                    n_inp,
+                    n_hid,
+                    n_heads,
+                    feat_drop=dropout,
+                    allow_zero_in_degree=True,
                 )
                 for srctype, etype, dsttype in graph.canonical_etypes
             }
@@ -278,7 +276,6 @@ class HTGNN(nn.Module):
         )
         self.gnn_layers = nn.ModuleList(
             [
-                # nn.DataParallel(
                 HTGNNLayer(
                     graph,
                     n_hid,
@@ -289,7 +286,6 @@ class HTGNN(nn.Module):
                     device,
                     dropout,
                 )
-                # )
                 for _ in range(n_layers)
             ]
         )
