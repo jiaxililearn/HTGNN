@@ -182,16 +182,24 @@ class HTGNNLayer(nn.Module):
             reltype = etype.split("_")[0]
             ttype = etype.split("_")[-1]
 
-            print(f"rel_graph num_nodes: {rel_graph.num_nodes()}")
-            print(
-                f"node_features[{stype}][{ttype}] shape: {node_features[stype][ttype].shape}"
-            )
-            print(
-                f"node_features[{dtype}][{ttype}] shape: {node_features[dtype][ttype].shape}"
-            )
+            # print(f"rel_graph num_nodes: {rel_graph.num_nodes()}")
+            # print(
+            #     f"node_features[{stype}][{ttype}] shape: {node_features[stype][ttype].shape}"
+            # )
+            # print(
+            #     f"node_features[{dtype}][{ttype}] shape: {node_features[dtype][ttype].shape}"
+            # )
+            rel_graph = rel_graph.to("cuda:1")
+            src_node_feat = node_features[stype][ttype].to("cuda:1")
+            dst_node_feat = node_features[dtype][ttype].to("cuda:1")
+
+            print(f"rel_graph: {rel_graph.get_device()}")
+            print(f"src_node_feat: {src_node_feat.get_device()}")
+            print(f"dst_node_feat: {dst_node_feat.get_device()}")
+            print(f"self.intra_rel_agg[etype]: {self.intra_rel_agg[etype].get_device()}")
 
             dst_feat = self.intra_rel_agg[etype](
-                rel_graph.to("cuda:1"), (node_features[stype][ttype].to("cuda:1"), node_features[dtype][ttype].to("cuda:1"))
+                rel_graph, (src_node_feat, dst_node_feat)
             )
             # dst_representation (dst_nodes, hid_dim)
             intra_features[ttype][(stype, etype, dtype)] = dst_feat.squeeze()
