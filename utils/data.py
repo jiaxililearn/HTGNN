@@ -1,3 +1,5 @@
+import numpy as np
+from collections import defaultdict
 import dgl
 import torch
 from utils.utils import mp2vec_feat
@@ -8,8 +10,29 @@ torch.cuda.manual_seed(0)
 torch.cuda.manual_seed_all(0)
 
 
-def construct_htg_dgraph(glist, idx, time_window, num_nodes_dict):
+# def construct_htg_dgraph(glist, idx, time_window, num_nodes_dict):
+#     sub_glist = glist[idx - time_window : idx]
+
+#     hetero_dict = {}
+#     for t, g_s in enumerate(sub_glist):
+#         for srctype, etype, dsttype in g_s.canonical_etypes:
+#             src, dst = g_s.in_edges(g_s.nodes(dsttype), etype=(srctype, etype, dsttype))
+#             hetero_dict[(srctype, f"{etype}_t{t}", dsttype)] = (src, dst)
+
+#     G_feat = dgl.heterograph(hetero_dict, num_nodes_dict=num_nodes_dict)
+#     for t, g_s in enumerate(sub_glist):
+#         for ntype in G_feat.ntypes:
+#             G_feat.nodes[ntype].data[f"t_all"] = g_s.nodes[ntype].data["features"]
+
+#     # G_label = glist[idx]
+#     return G_feat
+
+
+def construct_htg_dgraph_and_reindex(glist, idx, time_window, node_label):
     sub_glist = glist[idx - time_window : idx]
+
+    node_list = defaultdict(list)
+    reindex_dict = {}
 
     hetero_dict = {}
     for t, g_s in enumerate(sub_glist):
@@ -17,24 +40,54 @@ def construct_htg_dgraph(glist, idx, time_window, num_nodes_dict):
             src, dst = g_s.in_edges(g_s.nodes(dsttype), etype=(srctype, etype, dsttype))
             hetero_dict[(srctype, f"{etype}_t{t}", dsttype)] = (src, dst)
 
+            node_list[srctype].extend(src.numpy())
+            node_list[dsttype].extend(dst.numpy())
+
+    for k, v in node_list.items():
+        reindex_dict[k] = {v: i for i, v in enumerate(np.unique(v))}
+
+    for (srctype, etype, dsttype), (src, dst) in hetero_dict.items():
+        hetero_dict[(srctype, etype, dsttype)] = (
+            torch.tensor([reindex_dict[srctype][i] for i in src.numpy()]),
+            torch.tensor([reindex_dict[dsttype][i] for i in dst.numpy()]),
+        )
+
+    num_nodes_dict = {k: len(v) for k, v in node_list.items()}
     G_feat = dgl.heterograph(hetero_dict, num_nodes_dict=num_nodes_dict)
+    print(G_feat.num_nodes())
+
     for t, g_s in enumerate(sub_glist):
         for ntype in G_feat.ntypes:
-            G_feat.nodes[ntype].data[f"t{t}"] = g_s.nodes[ntype].data["features"]
+            g_s_feat = g_s.nodes[ntype].data["features"]
+            g_s_feat = g_s_feat[node_list[ntype]]
 
-    # G_label = glist[idx]
-    return G_feat
+            assert (
+                g_s_feat.shape[0] == G_feat.nodes(ntype).shape[0]
+            ), f"{g_s_feat.shape[0]} == {G_feat.nodes(ntype).shape[0]}"
+
+            G_feat.nodes[ntype].data[f"t_all"] = g_s_feat
+    G_label = {}
+
+    for k, v in node_label.items():
+        G_label[k] = v[node_list[k]]
+    
+    for k in G_label.keys():
+        assert G_label[k].shape[0] == G_feat.nodes[k].data['t_all'].shape[0]
+
+    return G_feat, G_label
 
 
-def load_dgraph_data(glist, time_window, num_nodes_dict):
+def load_dgraph_data(glist, time_window, node_label):
     _feats = []
+    _labels = []
 
     for i in range(len(glist)):
         if i >= time_window:
-            G_feat = construct_htg_dgraph(glist, i, time_window, num_nodes_dict)
+            G_feat, G_label = construct_htg_dgraph_and_reindex(glist, i, time_window, node_label)
             _feats.append(G_feat)
+            _labels.append(G_label)
             # _labels.append(G_label)
-    return _feats
+    return _feats, _labels
 
 
 def construct_htg_covid(glist, idx, time_window):

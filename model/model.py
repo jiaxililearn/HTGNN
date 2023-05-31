@@ -7,7 +7,7 @@ from dgl.nn.pytorch import GATConv
 import numpy as np
 import math
 
-NGPU = 4
+NGPU = 1
 
 
 class RelationAgg(nn.Module):
@@ -294,7 +294,7 @@ class HTGNN(nn.Module):
         self.timeframe = [f"t{_}" for _ in range(time_window)]
 
         self.adaption_layer = nn.ModuleDict(
-            {ntype: nn.Linear(n_inp, n_hid).to("cuda:0") for ntype in graph.ntypes}
+            {ntype: nn.Linear(n_inp, n_hid).to(device) for ntype in graph.ntypes}
         )
         self.gnn_layers = nn.ModuleList(
             [
