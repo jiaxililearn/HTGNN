@@ -126,10 +126,13 @@ class HTGNNLayer(nn.Module):
             }
         )
 
+        self.intra_rel_agg = self.intra_rel_agg.to("cuda:1")
+
         # inter relation aggregation modules
         self.inter_rel_agg = nn.ModuleDict(
             {ttype: RelationAgg(n_hid, n_hid) for ttype in timeframe}
         )
+        # self.inter_rel_agg = self.inter_rel_agg.to("cuda:2")
 
         # inter time aggregation modules
         self.cross_time_agg = nn.ModuleDict(
@@ -138,6 +141,8 @@ class HTGNNLayer(nn.Module):
                 for ntype in graph.ntypes
             }
         )
+
+        # self.cross_time_agg = self.cross_time_agg.to("cuda:3")
 
         # gate mechanism
         self.res_fc = nn.ModuleDict()
@@ -186,7 +191,7 @@ class HTGNNLayer(nn.Module):
             )
 
             dst_feat = self.intra_rel_agg[etype](
-                rel_graph, (node_features[stype][ttype], node_features[dtype][ttype])
+                rel_graph.to("cuda:1"), (node_features[stype][ttype].to("cuda:1"), node_features[dtype][ttype].to("cuda:1"))
             )
             # dst_representation (dst_nodes, hid_dim)
             intra_features[ttype][(stype, etype, dtype)] = dst_feat.squeeze()
