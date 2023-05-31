@@ -191,21 +191,20 @@ class HTGNNLayer(nn.Module):
             # print(
             #     f"node_features[{dtype}][{ttype}] shape: {node_features[dtype][ttype].shape}"
             # )
-            rel_graph = rel_graph.to("cuda:1")
-            src_node_feat = node_features[stype][ttype].to("cuda:1")
-            dst_node_feat = node_features[dtype][ttype].to("cuda:1")
 
             device_id = idx % NGPU
             with torch.cuda.device(f"cuda:{device_id}"):
-                print(f"device_id: {device_id}")
-                print(f"rel_graph: {rel_graph.device}")
-                print(f"src_node_feat: {src_node_feat.get_device()}")
-                print(f"dst_node_feat: {dst_node_feat.get_device()}")
                 # print(f"self.intra_rel_agg[{etype}]: {self.intra_rel_agg[etype]}")
 
                 rel_graph = rel_graph.to(f"cuda:{device_id}")
                 src_node_feat = node_features[stype][ttype].to(f"cuda:{device_id}")
                 dst_node_feat = node_features[dtype][ttype].to(f"cuda:{device_id}")
+
+                print(f"device_id: {device_id}")
+                print(f"rel_graph: {rel_graph.device}")
+                print(f"src_node_feat: {src_node_feat.get_device()}")
+                print(f"dst_node_feat: {dst_node_feat.get_device()}")
+
                 dst_feat = self.intra_rel_agg[etype](
                     rel_graph, (src_node_feat, dst_node_feat)
                 )
@@ -306,7 +305,7 @@ class HTGNN(nn.Module):
                     norm,
                     device,
                     dropout,
-                )
+                ).to(device)
                 for _ in range(n_layers)
             ]
         )
