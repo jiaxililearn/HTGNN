@@ -56,4 +56,4 @@ def partition_DGraph_dataset(dataset, num_part, batch_size, explicit_part=None):
         partition = partition.use(dist.get_rank())
     else:
         partition = partition.use(explicit_part)
-    return torch.utils.data.DataLoader(partition, batch_size=batch_size, shuffle=True)
+    return partition  # torch.utils.data.DataLoader(partition, batch_size=batch_size, shuffle=True)
