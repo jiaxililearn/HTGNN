@@ -93,7 +93,6 @@ class HTGNNLayer(nn.Module):
         norm: bool,
         device: torch.device,
         dropout: float,
-        n_etype: int = 12,
     ):
         """
 
@@ -119,16 +118,14 @@ class HTGNNLayer(nn.Module):
         # intra reltion aggregation modules
         self.intra_rel_agg = nn.ModuleDict(
             {
-                str(i): GATConv(
+                etype: GATConv(
                     n_inp,
                     n_hid,
                     n_heads,
                     feat_drop=dropout,
                     allow_zero_in_degree=True,
                 ).to(device)
-                for i in range(
-                    n_etype
-                )  # idx, (srctype, etype, dsttype) in enumerate(graph.canonical_etypes)
+                for idx, (srctype, etype, dsttype) in enumerate(graph.canonical_etypes)
             }
         )
 
@@ -184,17 +181,11 @@ class HTGNNLayer(nn.Module):
         intra_features = dict({ttype: {} for ttype in self.timeframe})
 
         # print(f"{np.unique([etype for _, etype, _ in graph.canonical_etypes]).shape}: {np.unique([etype for _, etype, _ in graph.canonical_etypes])}")
-        all_etype_t = sorted(
-            list(set([etype.split("_")[-1] for _, etype, _ in graph.canonical_etypes]))
-        )
-
-        t_mapping = {v: f"t{i}" for i, v in enumerate(all_etype_t)}
 
         for idx, (stype, etype, dtype) in enumerate(graph.canonical_etypes):
             rel_graph = graph[stype, etype, dtype]
             reltype = etype.split("_")[0]
-            # tfeat = "feat"
-            ttype = t_mapping[etype.split("_")[-1]]
+            ttype = etype.split("_")[-1]
 
             # print(f"rel_graph num_nodes: {rel_graph.num_nodes()}")
             # print(
@@ -217,8 +208,8 @@ class HTGNNLayer(nn.Module):
             # print(f"rel_graph: {rel_graph.device}")
             # print(f"src_node_feat: {src_node_feat.get_device()}")
             # print(f"dst_node_feat: {dst_node_feat.get_device()}")
-            _etype = etype.split("_")[0]
-            dst_feat = self.intra_rel_agg[_etype](
+
+            dst_feat = self.intra_rel_agg[etype](
                 rel_graph, (src_node_feat, dst_node_feat)
             )
             # out-with
@@ -339,7 +330,7 @@ class HTGNN(nn.Module):
             inp_feat[ntype] = {}
             for ttype in self.timeframe:
                 adapt_embedd = self.adaption_layer[ntype](
-                    graph.nodes[ntype].data["feat"]  # ttype
+                    graph.nodes[ntype].data[ttype]
                 )
                 # print(f"adapt_embedd shape: {adapt_embedd.shape}")
                 inp_feat[ntype][ttype] = adapt_embedd
@@ -348,15 +339,7 @@ class HTGNN(nn.Module):
         for i in range(self.n_layers):
             inp_feat = self.gnn_layers[i](graph, inp_feat)
 
-        if predict_type == "ALL":
-            out_feat = {}
-            for ntype in inp_feat.keys():
-                out_feat[ntype] = sum(
-                    [inp_feat[ntype][ttype] for ttype in self.timeframe]
-                )
-
-        else:
-            out_feat = sum([inp_feat[predict_type][ttype] for ttype in self.timeframe])
+        out_feat = sum([inp_feat[predict_type][ttype] for ttype in self.timeframe])
 
         return out_feat
 

@@ -4,3 +4,15 @@ utils/__pycache__/utils.cpython-37.pyc
 model/__pycache__/model.cpython-37.pyc
 .vscode/settings.json
 utils/__pycache__/distributed_data.cpython-37.pyc
+output/DGraph/origin*/*
+data/dgraph/test_feats.bin
+data/dgraph/test_labels.pt
+data/dgraph/train_feats.bin
+data/dgraph/train_labels.pt
+data/dgraph/valid_feats.bin
+data/dgraph/valid_labels.pt
+data/.DS_Store
+.DS_Store
+results/dgraph/*.txt
+results/dgraph_svdd/*.txt
+checkpoint/*.pt
