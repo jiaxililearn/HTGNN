@@ -35,17 +35,18 @@ class HRGCNConv(MessagePassing):
                     ).to(device)
         self.intra_rel_agg = torch.nn.ModuleDict(intra_dict)
 
-        self.cross_time_agg = torch.nn.ModuleDict(
-            {
-                ntype: TemporalAgg(n_hid, n_hid, len(timeframe), device)
-                for ntype in set(src_ntypes + dst_ntypes)
-            }
+        # inter relation aggregation modules
+        self.inter_rel_agg = torch.nn.ModuleDict(
+            {ttype: RelationAgg(n_hid, n_hid) for ttype in timeframe}
         )
 
         self.relu = torch.nn.LeakyReLU()
 
+        self.reset_parameters()
+
     def reset_parameters(self):
-        pass
+        for k, l in self.intra_rel_agg.items():
+            l.reset_parameters()
 
     def forward(self, graph, node_features):
         # TODO: Replace both intra and inter layer from HTGNN
@@ -106,6 +107,8 @@ class HRGCNConv(MessagePassing):
                 types_features = torch.stack(types_features, dim=1)
                 out_feat = self.inter_rel_agg[ttype](types_features)
                 inter_features[ntype][ttype] = out_feat
+
+        return inter_features
 
     def _norm(self, edge_index, size, edge_weight=None, flow="source_to_target"):
         assert flow in ["source_to_target", "target_to_source"]
@@ -203,13 +206,22 @@ class RelationAgg(torch.nn.Module):
 
         self.project = torch.nn.Sequential(
             torch.nn.Linear(n_inp, n_hid),
-            torch.nn.Tanh(),
-            torch.nn.Linear(n_hid, 1, bias=False),
+            torch.nn.LeakyReLU(),
+            # torch.nn.Tanh(),
+            # torch.nn.Linear(n_hid, 1, bias=False),
         )
 
     def forward(self, h):
-        w = self.project(h).mean(0)
-        beta = torch.softmax(w, dim=0)
-        beta = beta.expand((h.shape[0],) + beta.shape)
+        # w: torch.Size([2, 1])
+        # beta1: torch.Size([2, 1])
+        # beta2: torch.Size([51, 2, 1])
+        # beta3: torch.Size([51, 8])
+        # w: torch.Size([2, 1])
+        # beta1: torch.Size([2, 1])
+        # beta2: torch.Size([3223, 2, 1])
+        # beta3: torch.Size([3223, 8])
+        # w = self.project(h).mean(0)
+        # beta = torch.softmax(w, dim=0)
+        # beta = beta.expand((h.shape[0],) + beta.shape)
 
-        return (beta * h).sum(1)
+        return self.project(torch.max(h, dim=1))

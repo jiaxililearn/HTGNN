@@ -7,28 +7,9 @@ from dgl.nn.pytorch import GATConv
 import numpy as np
 import math
 
+from HRGCNConv import HRGCNConv
+
 NGPU = 1
-
-
-class RelationAgg(nn.Module):
-    def __init__(self, n_inp: int, n_hid: int):
-        """
-
-        :param n_inp: int, input dimension
-        :param n_hid: int, hidden dimension
-        """
-        super(RelationAgg, self).__init__()
-
-        self.project = nn.Sequential(
-            nn.Linear(n_inp, n_hid), nn.Tanh(), nn.Linear(n_hid, 1, bias=False)
-        )
-
-    def forward(self, h):
-        w = self.project(h).mean(0)
-        beta = torch.softmax(w, dim=0)
-        beta = beta.expand((h.shape[0],) + beta.shape)
-
-        return (beta * h).sum(1)
 
 
 class TemporalAgg(nn.Module):
@@ -117,27 +98,8 @@ class HTGNNLayer(nn.Module):
         self.device = device
 
         # intra reltion aggregation modules
-        self.intra_rel_agg = nn.ModuleDict(
-            {
-                str(i): GATConv(
-                    n_inp,
-                    n_hid,
-                    n_heads,
-                    feat_drop=dropout,
-                    allow_zero_in_degree=True,
-                ).to(device)
-                for i in range(
-                    n_etype
-                )  # idx, (srctype, etype, dsttype) in enumerate(graph.canonical_etypes)
-            }
-        )
+        self.hrgcn_conv = HRGCNConv(n_inp, n_hid, device, timeframe)
 
-        # self.intra_rel_agg = self.intra_rel_agg.to("cuda:1")
-
-        # inter relation aggregation modules
-        self.inter_rel_agg = nn.ModuleDict(
-            {ttype: RelationAgg(n_hid, n_hid) for ttype in timeframe}
-        )
         # self.inter_rel_agg = self.inter_rel_agg.to("cuda:2")
 
         # inter time aggregation modules
@@ -179,68 +141,7 @@ class HTGNNLayer(nn.Module):
         :return: output_features: dict, {'ntype': {'ttype': features}}
         """
 
-        # same type neighbors aggregation
-        # intra_features, dict, {'ttype': {(stype, etype, dtype): features}}
-        intra_features = dict({ttype: {} for ttype in self.timeframe})
-
-        # print(f"{np.unique([etype for _, etype, _ in graph.canonical_etypes]).shape}: {np.unique([etype for _, etype, _ in graph.canonical_etypes])}")
-        all_etype_t = sorted(
-            list(set([etype.split("_")[-1] for _, etype, _ in graph.canonical_etypes]))
-        )
-
-        t_mapping = {v: f"t{i}" for i, v in enumerate(all_etype_t)}
-
-        for idx, (stype, etype, dtype) in enumerate(graph.canonical_etypes):
-            rel_graph = graph[stype, etype, dtype]
-            reltype = etype.split("_")[0]
-            # tfeat = "feat"
-            ttype = t_mapping[etype.split("_")[-1]]
-
-            # print(f"rel_graph num_nodes: {rel_graph.num_nodes()}")
-            # print(
-            #     f"node_features[{stype}][{ttype}] shape: {node_features[stype][ttype].shape}"
-            # )
-            # print(
-            #     f"node_features[{dtype}][{ttype}] shape: {node_features[dtype][ttype].shape}"
-            # )
-
-            # device_id = idx % NGPU
-            # with torch.cuda.device(f"cuda:{idx % NGPU}"):
-            # in-with
-            # print(f"self.intra_rel_agg[{etype}]: {self.intra_rel_agg[etype]}")
-            # self = self.to(self.device)
-            rel_graph = rel_graph.to(self.device)
-            src_node_feat = node_features[stype][ttype].to(self.device)
-            dst_node_feat = node_features[dtype][ttype].to(self.device)
-
-            # print(f"device_id: {device_id}")
-            # print(f"rel_graph: {rel_graph.device}")
-            # print(f"src_node_feat: {src_node_feat.get_device()}")
-            # print(f"dst_node_feat: {dst_node_feat.get_device()}")
-            _etype = etype.split("_")[0]
-            dst_feat = self.intra_rel_agg[_etype](
-                rel_graph, (src_node_feat, dst_node_feat)
-            )
-            # out-with
-            # dst_representation (dst_nodes, hid_dim)
-            intra_features[ttype][(stype, etype, dtype)] = dst_feat.squeeze()
-
-        # different types aggregation
-        # inter_features, dict, {'ntype': {ttype: features}}
-        inter_features = dict({ntype: {} for ntype in graph.ntypes})
-
-        for ttype in intra_features.keys():
-            for ntype in graph.ntypes:
-                types_features = []
-                for stype, etype, dtype in intra_features[ttype]:
-                    if ntype == dtype:
-                        types_features.append(
-                            intra_features[ttype][(stype, etype, dtype)]
-                        )
-
-                types_features = torch.stack(types_features, dim=1)
-                out_feat = self.inter_rel_agg[ttype](types_features)
-                inter_features[ntype][ttype] = out_feat
+        inter_features = self.hrgcn_conv(graph, node_features)
 
         # different timestamps aggregation
         # time_features, dict, {'ntype': {'ttype': features}}
