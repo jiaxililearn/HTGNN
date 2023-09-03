@@ -135,7 +135,7 @@ predictor = NodePredictor(n_inp=8, n_classes=1).to(device)
 model = nn.Sequential(htgnn, predictor).to(device)
 
 # %%
-early_stopping = EarlyStopping(patience=10, verbose=True, path=f'{model_out_path}/checkpoint_HTGNN.pt')
+early_stopping = EarlyStopping(patience=10, verbose=True, path=f'{model_out_path}/checkpoint_HTGNN_SVDD.pt')
 optim = torch.optim.Adam(model.parameters(), lr=5e-3, weight_decay=5e-4)
 
 # train_mae_list, train_rmse_list = [], []
