@@ -92,7 +92,7 @@ class HRGCNConv(MessagePassing):
         # different types aggregation
         # inter_features, dict, {'ntype': {ttype: features}}
         inter_features = dict({ntype: {} for ntype in graph.ntypes})
-        
+
         # TODO: return inter_features
         for ttype in intra_features.keys():
             for ntype in graph.ntypes:
@@ -190,3 +190,26 @@ class TemporalAgg(torch.nn.Module):
         h_ = F.relu(self.fc(h_))
 
         return h_
+
+
+class RelationAgg(torch.nn.Module):
+    def __init__(self, n_inp: int, n_hid: int):
+        """
+
+        :param n_inp: int, input dimension
+        :param n_hid: int, hidden dimension
+        """
+        super(RelationAgg, self).__init__()
+
+        self.project = torch.nn.Sequential(
+            torch.nn.Linear(n_inp, n_hid),
+            torch.nn.Tanh(),
+            torch.nn.Linear(n_hid, 1, bias=False),
+        )
+
+    def forward(self, h):
+        w = self.project(h).mean(0)
+        beta = torch.softmax(w, dim=0)
+        beta = beta.expand((h.shape[0],) + beta.shape)
+
+        return (beta * h).sum(1)
