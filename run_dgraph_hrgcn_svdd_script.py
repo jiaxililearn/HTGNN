@@ -96,13 +96,13 @@ def evaluate(model, svdd, val_feats, val_labels, pred_node_type="ALL"):
             if f_labels.unique().shape[0] >= 2:
                 # AUC
                 fpr, tpr, thresholds = metrics.roc_curve(
-                    f_labels.numpy(), f_pred.numpy()
+                    f_labels.cpu().numpy(), f_pred.cpu().numpy()
                 )
                 auc = metrics.auc(fpr, tpr)
 
                 # AP
                 precision, recall, thresholds = metrics.precision_recall_curve(
-                    f_labels.numpy(), f_pred.numpy()
+                    f_labels.cpu().numpy(), f_pred.cpu().numpy()
                 )
                 ap = metrics.auc(recall, precision)
 

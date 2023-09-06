@@ -101,13 +101,13 @@ def evaluate(model, val_feats, val_labels, pred_node_type="ALL"):
             if f_labels.unique().shape[0] >= 2:
                 # AUC
                 fpr, tpr, thresholds = metrics.roc_curve(
-                    f_labels.numpy(), f_pred.numpy()
+                    f_labels.cpu().numpy(), f_pred.cpu().numpy()
                 )
                 auc = metrics.auc(fpr, tpr)
 
                 # AP
                 precision, recall, thresholds = metrics.precision_recall_curve(
-                    f_labels.numpy(), f_pred.numpy()
+                    f_labels.cpu().numpy(), f_pred.cpu().numpy()
                 )
                 ap = metrics.auc(recall, precision)
 
@@ -136,9 +136,9 @@ model_out_path = 'checkpoint'
 
 
 # %%
-htgnn = HRTGCN(graph=graph_atom, n_inp=16, n_hid=8, n_layers=2, n_heads=1, time_window=time_window, norm=False, device=device)
-predictor = NodePredictor(n_inp=8, n_classes=1)
-model = nn.Sequential(htgnn, predictor)
+htgnn = HRTGCN(graph=graph_atom, n_inp=16, n_hid=8, n_layers=2, n_heads=1, time_window=time_window, norm=False, device=device).to(device)
+predictor = NodePredictor(n_inp=8, n_classes=1).to(device)
+model = nn.Sequential(htgnn, predictor).to(device)
 
 # %%
 early_stopping = EarlyStopping(patience=10, verbose=True, path=f'{model_out_path}/checkpoint_HTGNN.pt')
