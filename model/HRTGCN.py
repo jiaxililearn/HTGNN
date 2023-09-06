@@ -7,7 +7,7 @@ from dgl.nn.pytorch import GATConv
 import numpy as np
 import math
 
-from HRGCNConv import HRGCNConv
+from .HRGCNConv import HRGCNConv
 
 NGPU = 1
 

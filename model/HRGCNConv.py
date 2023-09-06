@@ -30,7 +30,7 @@ class HRGCNConv(MessagePassing):
         for srcn in src_ntypes:
             for dstn in dst_ntypes:
                 for e in etypes:
-                    intra_dict[(srcn, e, dstn)] = torch.nn.Linear(
+                    intra_dict[str((srcn, e, dstn))] = torch.nn.Linear(
                         n_inp, n_hid, bias=True
                     ).to(device)
         self.intra_rel_agg = torch.nn.ModuleDict(intra_dict)
@@ -79,11 +79,12 @@ class HRGCNConv(MessagePassing):
                 # edge_weight=het_edge_weight,
             )
 
-            content_h = self.intra_rel_agg[(stype, reltype, dtype)](intra_node_features)
+            content_h = self.intra_rel_agg[str((stype, reltype, dtype))](intra_node_features)
+            _edge_weight = torch.ones((intra_edge_index.size(1),), device=intra_edge_index.device)
             content_h = self.propagate(
                 intra_edge_index,
                 x=content_h,
-                # edge_weight=het_edge_weight
+                edge_weight=_edge_weight
             )
             content_h = self.relu(content_h)
             dst_feat = content_h[src_node_feat.shape[0] :]
@@ -223,5 +224,5 @@ class RelationAgg(torch.nn.Module):
         # w = self.project(h).mean(0)
         # beta = torch.softmax(w, dim=0)
         # beta = beta.expand((h.shape[0],) + beta.shape)
-
-        return self.project(torch.max(h, dim=1))
+        _h, _ = torch.max(h, dim=1)
+        return self.project(_h)

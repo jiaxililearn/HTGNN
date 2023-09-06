@@ -16,3 +16,4 @@ data/.DS_Store
 results/dgraph/*.txt
 results/dgraph_svdd/*.txt
 checkpoint/*.pt
+model/__pycache__/*
