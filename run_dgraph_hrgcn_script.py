@@ -68,7 +68,7 @@ def evaluate(model, val_feats, val_labels, pred_node_type="ALL"):
 
     with torch.no_grad():
         for i, (G_feat, G_label) in enumerate(zip(val_feats, val_labels)):
-            if not valid_graph_feat(G_feat, time_window):
+            if not valid_graph_feat(G_feat.to(device), time_window):
                 continue
             try:
                 h = model[0](G_feat.to(device), pred_node_type)
@@ -162,10 +162,10 @@ for epoch in range(200):
         G_label = train_labels[i]
 
         # check if graph contains more than 2 windows
-        if not valid_graph_feat(G_feat, time_window):
+        if not valid_graph_feat(G_feat.to(device), time_window):
             continue
 
-        h = model[0](G_feat, pred_node_type)
+        h = model[0](G_feat.to(device), pred_node_type)
 
         f_labels = []
         f_pred = []
