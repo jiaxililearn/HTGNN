@@ -19,7 +19,7 @@ torch.cuda.manual_seed_all(0)
 
 # %%
 # device = torch.device('cuda:1')
-device = torch.device('cpu')
+device = torch.device('cuda')
 
 # %%
 
@@ -192,7 +192,6 @@ for epoch in range(200):
         optim.zero_grad()
         loss.backward()
         optim.step()
-        break
 
     epoch_mae = sum(train_mae_list) / len(train_mae_list)
     epoch_rmse = sum(train_rmse_list) / len(train_rmse_list)

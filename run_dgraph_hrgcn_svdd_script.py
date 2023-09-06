@@ -19,7 +19,7 @@ torch.cuda.manual_seed_all(0)
 
 # %%
 # device = torch.device('cuda:1')
-device = torch.device('cpu')
+device = torch.device('cuda')
 
 # %%
 
