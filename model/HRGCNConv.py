@@ -79,12 +79,14 @@ class HRGCNConv(MessagePassing):
                 # edge_weight=het_edge_weight,
             )
 
-            content_h = self.intra_rel_agg[str((stype, reltype, dtype))](intra_node_features)
-            _edge_weight = torch.ones((intra_edge_index.size(1),), device=intra_edge_index.device)
+            content_h = self.intra_rel_agg[str((stype, reltype, dtype))](
+                intra_node_features
+            )
+            _edge_weight = torch.ones(
+                (intra_edge_index.size(1),), device=intra_edge_index.device
+            )
             content_h = self.propagate(
-                intra_edge_index,
-                x=content_h,
-                edge_weight=_edge_weight
+                intra_edge_index, x=content_h, edge_weight=_edge_weight
             )
             content_h = self.relu(content_h)
             dst_feat = content_h[src_node_feat.shape[0] :]
@@ -95,7 +97,6 @@ class HRGCNConv(MessagePassing):
         # inter_features, dict, {'ntype': {ttype: features}}
         inter_features = dict({ntype: {} for ntype in graph.ntypes})
 
-        # TODO: return inter_features
         for ttype in intra_features.keys():
             for ntype in graph.ntypes:
                 types_features = []
@@ -145,55 +146,55 @@ class HRGCNConv(MessagePassing):
         return inputs
 
 
-class TemporalAgg(torch.nn.Module):
-    def __init__(self, n_inp: int, n_hid: int, time_window: int, device: torch.device):
-        """
+# class TemporalAgg(torch.nn.Module):
+#     def __init__(self, n_inp: int, n_hid: int, time_window: int, device: torch.device):
+#         """
 
-        :param n_inp      : int         , input dimension
-        :param n_hid      : int         , hidden dimension
-        :param time_window: int         , the number of timestamps
-        :param device     : torch.device, gpu
-        """
-        super(TemporalAgg, self).__init__()
+#         :param n_inp      : int         , input dimension
+#         :param n_hid      : int         , hidden dimension
+#         :param time_window: int         , the number of timestamps
+#         :param device     : torch.device, gpu
+#         """
+#         super(TemporalAgg, self).__init__()
 
-        self.proj = torch.nn.Linear(n_inp, n_hid)
-        self.q_w = torch.nn.Linear(n_hid, n_hid, bias=False)
-        self.k_w = torch.nn.Linear(n_hid, n_hid, bias=False)
-        self.v_w = torch.nn.Linear(n_hid, n_hid, bias=False)
-        self.fc = torch.nn.Linear(n_hid, n_hid)
-        self.pe = (
-            torch.tensor(self.generate_positional_encoding(n_hid, time_window))
-            .float()
-            .to(device)
-        )
+#         self.proj = torch.nn.Linear(n_inp, n_hid)
+#         self.q_w = torch.nn.Linear(n_hid, n_hid, bias=False)
+#         self.k_w = torch.nn.Linear(n_hid, n_hid, bias=False)
+#         self.v_w = torch.nn.Linear(n_hid, n_hid, bias=False)
+#         self.fc = torch.nn.Linear(n_hid, n_hid)
+#         self.pe = (
+#             torch.tensor(self.generate_positional_encoding(n_hid, time_window))
+#             .float()
+#             .to(device)
+#         )
 
-    def generate_positional_encoding(self, d_model, max_len):
-        pe = np.zeros((max_len, d_model))
-        for i in range(max_len):
-            for k in range(0, d_model, 2):
-                div_term = math.exp(k * -math.log(100000.0) / d_model)
-                pe[i][k] = math.sin((i + 1) * div_term)
-                try:
-                    pe[i][k + 1] = math.cos((i + 1) * div_term)
-                except:
-                    continue
-        return pe
+#     def generate_positional_encoding(self, d_model, max_len):
+#         pe = np.zeros((max_len, d_model))
+#         for i in range(max_len):
+#             for k in range(0, d_model, 2):
+#                 div_term = math.exp(k * -math.log(100000.0) / d_model)
+#                 pe[i][k] = math.sin((i + 1) * div_term)
+#                 try:
+#                     pe[i][k + 1] = math.cos((i + 1) * div_term)
+#                 except:
+#                     continue
+#         return pe
 
-    def forward(self, x):
-        x = x.permute(1, 0, 2)
-        h = self.proj(x)
-        h = h + self.pe
-        q = self.q_w(h)
-        k = self.k_w(h)
-        v = self.v_w(h)
+#     def forward(self, x):
+#         x = x.permute(1, 0, 2)
+#         h = self.proj(x)
+#         h = h + self.pe
+#         q = self.q_w(h)
+#         k = self.k_w(h)
+#         v = self.v_w(h)
 
-        qk = torch.matmul(q, k.permute(0, 2, 1))
-        score = F.softmax(qk, dim=-1)
+#         qk = torch.matmul(q, k.permute(0, 2, 1))
+#         score = F.softmax(qk, dim=-1)
 
-        h_ = torch.matmul(score, v)
-        h_ = F.relu(self.fc(h_))
+#         h_ = torch.matmul(score, v)
+#         h_ = F.relu(self.fc(h_))
 
-        return h_
+#         return h_
 
 
 class RelationAgg(torch.nn.Module):
