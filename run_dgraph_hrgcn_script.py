@@ -171,7 +171,7 @@ for epoch in range(200):
         f_pred = []
         for ntype in G_label.keys():
             pred = model[1](h[ntype])
-            label = G_label[ntype].view(-1, 1)
+            label = G_label[ntype].to(device).view(-1, 1)
 
             label_mask = (label == 0) | (label == 1)
 
