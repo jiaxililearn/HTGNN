@@ -136,7 +136,7 @@ model = nn.Sequential(htgnn, predictor).to(device)
 
 # %%
 early_stopping = EarlyStopping(patience=10, verbose=True, path=f'{model_out_path}/checkpoint_HTGNN.pt')
-optim = torch.optim.Adam(model.parameters(), lr=5e-3, weight_decay=5e-4)
+optim = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=5e-4)
 
 # train_mae_list, train_rmse_list = [], []
 train_svdd_list = []
