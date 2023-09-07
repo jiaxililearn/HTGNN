@@ -13,7 +13,6 @@ data/dgraph/valid_feats.bin
 data/dgraph/valid_labels.pt
 data/.DS_Store
 .DS_Store
-results/dgraph/*.txt
-results/dgraph_svdd/*.txt
 checkpoint/*.pt
 model/__pycache__/*
+results/**/.ipynb_checkpoints/*
